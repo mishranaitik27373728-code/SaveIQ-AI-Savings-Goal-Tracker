@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaveIQ – AI Savings Goal Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Inline Fallback & Apps Script compatibility */
+    <?!= include('styles'); ?>
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Top Navigation & Brand Header -->
+    <header class="header-nav">
+      <a href="#" class="brand">
+        <div class="brand-icon">💎</div>
+        <div class="brand-text">
+          <h1>SaveIQ</h1>
+          <span>AI Savings Goal Tracker</span>
+        </div>
+      </a>
+
+      <div class="nav-actions">
+        <button class="btn btn-secondary btn-sm" onclick="exportGoalsCSV()" title="Export CSV Report">
+          📥 CSV
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="printFinancialReport()" title="Print / PDF Report">
+          🖨️ Print / PDF
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="runManualAudit()" title="Trigger Automated Daily Audit">
+          ⏰ Audit
+        </button>
+        <button class="btn-icon" onclick="openSettingsModal()" title="Settings & Groq API Key">
+          ⚙️
+        </button>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+          + New Goal
+        </button>
+      </div>
+    </header>
+
+    <!-- KPI Analytics Metrics -->
+    <section class="kpi-grid">
+      <!-- Total Target -->
+      <div class="kpi-card kpi-target">
+        <div class="kpi-header">
+          <span class="kpi-title">Total Target</span>
+          <div class="kpi-icon" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🎯</div>
+        </div>
+        <div class="kpi-val" id="kpiTotalTarget">$0</div>
+        <div class="kpi-sub" id="kpiRemainingLabel">$0 left to fund</div>
+      </div>
+
+      <!-- Total Saved -->
+      <div class="kpi-card kpi-saved">
+        <div class="kpi-header">
+          <span class="kpi-title">Total Saved</span>
+          <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">💰</div>
+        </div>
+        <div class="kpi-val" id="kpiTotalSaved" style="color: #34d399;">$0</div>
+        <div class="kpi-sub">Across all savings goals</div>
+      </div>
+
+      <!-- Overall Progress -->
+      <div class="kpi-card kpi-progress">
+        <div class="kpi-header">
+          <span class="kpi-title">Overall Progress</span>
+          <div class="kpi-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">📊</div>
+        </div>
+        <div class="kpi-val" id="kpiOverallProgress" style="color: #c084fc;">0%</div>
+        <div class="kpi-sub">Aggregate portfolio completion</div>
+      </div>
+
+      <!-- Active Goals -->
+      <div class="kpi-card kpi-active">
+        <div class="kpi-header">
+          <span class="kpi-title">Active Goals</span>
+          <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">⏳</div>
+        </div>
+        <div class="kpi-val" id="kpiActiveGoals" style="color: #60a5fa;">0</div>
+        <div class="kpi-sub">Currently accumulating</div>
+      </div>
+
+      <!-- Completed Goals -->
+      <div class="kpi-card kpi-completed">
+        <div class="kpi-header">
+          <span class="kpi-title">Completed</span>
+          <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">🏆</div>
+        </div>
+        <div class="kpi-val" id="kpiCompletedGoals" style="color: #10b981;">0</div>
+        <div class="kpi-sub">Target achieved 100%</div>
+      </div>
+
+      <!-- Overdue Goals -->
+      <div class="kpi-card kpi-overdue">
+        <div class="kpi-header">
+          <span class="kpi-title">Overdue / At Risk</span>
+          <div class="kpi-icon" style="background: rgba(244, 63, 94, 0.15); color: #fb7185;">⚠️</div>
+        </div>
+        <div class="kpi-val" id="kpiOverdueGoals" style="color: #fb7185;">0</div>
+        <div class="kpi-sub">Past target deadline</div>
+      </div>
+    </section>
+
+    <!-- Dashboard Toolbar, Filters & Search -->
+    <section class="toolbar">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="all">All Goals</button>
+        <button class="filter-btn" data-filter="active">Active</button>
+        <button class="filter-btn" data-filter="completed">Completed</button>
+        <button class="filter-btn" data-filter="overdue">Overdue</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchGoalInput" class="search-input" placeholder="Search goal or purpose...">
+        </div>
+
+        <select id="sortGoalSelect" class="form-select" style="width: auto; padding: 8px 12px; font-size: 13px;">
+          <option value="deadline">Sort: Deadline (Nearest)</option>
+          <option value="progress">Sort: Progress (%)</option>
+          <option value="target">Sort: Target Amount (High-Low)</option>
+          <option value="saved">Sort: Saved Amount (High-Low)</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Goals Grid Container -->
+    <main class="goals-grid" id="goalsGrid">
+      <!-- Dynamic Goal Cards Rendered Here via script.js -->
+    </main>
+
+    <!-- Footer -->
+    <footer style="margin-top: 60px; text-align: center; font-size: 12px; color: var(--text-dim);">
+      SaveIQ – AI-Powered Personal Finance & Savings Discipline Management System<br>
+      Google Apps Script • Google Sheets Database • Groq AI (Llama-3.3-70B) • Gmail Services
+    </footer>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODALS -->
+  <!-- ============================================================== -->
+
+  <!-- Modal 1: Create New Savings Goal -->
+  <div class="modal-overlay" id="createGoalModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title"><span>🎯</span> Create Savings Goal</h2>
+        <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+      </div>
+
+      <form id="createGoalForm">
+        <div class="form-group">
+          <label class="form-label" for="goalName">Goal Name *</label>
+          <input type="text" id="goalName" class="form-input" placeholder="e.g. M3 MacBook Pro, Emergency Fund" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="goalTarget">Target Amount ($) *</label>
+            <input type="number" id="goalTarget" class="form-input" min="1" step="0.01" placeholder="2500" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="goalInitial">Initial Savings ($)</label>
+            <input type="number" id="goalInitial" class="form-input" min="0" step="0.01" placeholder="0">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="goalDeadline">Target Deadline *</label>
+            <input type="date" id="goalDeadline" class="form-input" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="goalPurpose">Category / Purpose *</label>
+            <select id="goalPurpose" class="form-select" required>
+              <option value="Tech & Gadgets">💻 Tech & Gadgets</option>
+              <option value="Emergency Fund">🛡️ Emergency Fund</option>
+              <option value="Vacation & Travel">✈️ Vacation & Travel</option>
+              <option value="Vehicle & Transport">🚗 Vehicle & Transport</option>
+              <option value="Home & Real Estate">🏡 Home & Real Estate</option>
+              <option value="Education & Career">🎓 Education & Career</option>
+              <option value="Investment & Wealth">📈 Investment & Wealth</option>
+              <option value="Health & Wellness">❤️ Health & Wellness</option>
+              <option value="Shopping & Luxury">🛍️ Shopping & Luxury</option>
+              <option value="General Savings" selected>💰 General Savings</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="goalEmail">Alert & Notification Email</label>
+          <input type="email" id="goalEmail" class="form-input" placeholder="your-email@gmail.com">
+          <div class="form-hint">Used for automated deadline audits and Gmail reminders.</div>
+        </div>
+
+        <!-- Live Plan Velocity Preview -->
+        <div id="formPacingPreview" style="display: none; background: rgba(56, 189, 248, 0.08); border-left: 3px solid #38bdf8; padding: 12px; border-radius: 8px; font-size: 13px; color: #cbd5e1; margin-bottom: 18px;">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitGoal">Create Savings Goal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Add Savings Deposit -->
+  <div class="modal-overlay" id="depositModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title"><span>💵</span> Deposit Contribution</h2>
+        <button class="modal-close" onclick="closeDepositModal()">&times;</button>
+      </div>
+
+      <form id="depositForm">
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 4px;">
+          Adding funds to: <strong id="depositGoalName" style="color: var(--text-main);">Goal Name</strong>
+        </p>
+        <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 18px;">
+          Remaining balance: <strong id="depositGoalRemaining" style="color: #f87171;">$0</strong>
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="depositAmountInput">Deposit Amount ($) *</label>
+          <input type="number" id="depositAmountInput" class="form-input" min="1" step="0.01" placeholder="Enter amount" required autofocus>
+          
+          <div class="preset-chips">
+            <button type="button" class="preset-chip" onclick="setPresetDeposit(10)">+$10</button>
+            <button type="button" class="preset-chip" onclick="setPresetDeposit(25)">+$25</button>
+            <button type="button" class="preset-chip" onclick="setPresetDeposit(50)">+$50</button>
+            <button type="button" class="preset-chip" onclick="setPresetDeposit(100)">+$100</button>
+            <button type="button" class="preset-chip" onclick="setPresetDeposit(250)">+$250</button>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeDepositModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnConfirmDeposit">Deposit Contribution</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: AI Financial Insights & Advice -->
+  <div class="modal-overlay" id="aiModal">
+    <div class="modal-content ai-modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title"><span>✨</span> AI Financial Advisor</h2>
+        <button class="modal-close" onclick="closeAIModal()">&times;</button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <span style="font-size: 14px; color: var(--text-muted);">
+          Goal: <strong id="aiGoalTitle" style="color: var(--text-main);"></strong>
+        </span>
+        <span class="ai-badge-source" id="aiSourceBadge">Groq Cloud (Llama-3.3-70B)</span>
+      </div>
+
+      <div class="ai-output-box" id="aiContentBox">
+        <!-- Rendered AI Advice -->
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" onclick="copyAIAdvice()">📋 Copy Insights</button>
+        <button type="button" class="btn btn-primary" onclick="closeAIModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Settings & Groq API Key -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title"><span>⚙️</span> System Settings</h2>
+        <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="groqApiKeyInput">Groq Cloud API Key</label>
+        <input type="password" id="groqApiKeyInput" class="form-input" placeholder="gsk_...">
+        <div class="form-hint">
+          Powers the <strong>llama-3.3-70b-versatile</strong> AI financial reasoning model. Get a free API key at <a href="https://console.groq.com/keys" target="_blank" style="color: #38bdf8; text-decoration: underline;">console.groq.com</a>.
+        </div>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: var(--radius-md); padding: 14px; margin-bottom: 20px;">
+        <div style="font-size: 12px; color: var(--text-dim); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Detected Backend Mode</div>
+        <div style="font-size: 14px; font-weight: 700; color: #38bdf8;" id="activeBackendModeLabel">DETECTING...</div>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+          Seamlessly supports Google Apps Script (Web App), FastAPI (Python), and Local Browser Storage.
+        </p>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Close</button>
+        <button type="button" class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+  <script>
+    /* Inline Fallback & Apps Script compatibility */
+    <?!= include('script'); ?>
+  </script>
+</body>
+</html>
